@@ -1,0 +1,7 @@
+<h1>{{.Title}}</h1>
+
+<p>{{.Story}}</p>
+
+{{range .Options}}
+<a href="/{{.Arc}}">{{.Text}}</a>
+{{end}}

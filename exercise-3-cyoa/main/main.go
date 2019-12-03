@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	myHandler := new(myhandler.StoryHandler)
+	myHandler := myhandler.NewHandler()
 
 	fmt.Println("Starting Server on localhost:8080")
 
