@@ -1,7 +1,16 @@
-<h1>{{.Title}}</h1>
+<head>
+  <link href="/static/css/style.css" rel="stylesheet">
+</head>
 
-<p>{{.Story}}</p>
+<body>
+  <h1>{{.Title}}</h1>
 
-{{range .Options}}
-<a href="/{{.Arc}}">{{.Text}}</a>
-{{end}}
+  <p>{{index .Story 0}}</p>
+
+  <ul>
+  {{range .Options}}
+  <li><a href="/{{.Arc}}">{{.Text}}</a></li>
+  {{end}}
+
+  </ul>
+</body>

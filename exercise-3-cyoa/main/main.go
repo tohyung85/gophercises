@@ -1,15 +1,29 @@
 package main
 
 import (
+	"flag"
 	"fmt"
-	"github.com/tohyung85/gophercises/exercise-3-cyoa/myhandler"
 	"net/http"
+
+	"github.com/tohyung85/gophercises/exercise-3-cyoa/myhandler"
 )
 
 func main() {
-	myHandler := myhandler.NewHandler()
+	platform := flag.String("platform", "web", "Selection to run on 'console' or 'web'. Defaults to 'web'")
+	flag.Parse()
 
-	fmt.Println("Starting Server on localhost:8080")
+	if *platform == "console" {
+		fmt.Println("Runnning on Console")
+		myHandler := myhandler.NewConsoleHandler()
+		myHandler.Start()
+	} else {
+		myHandler := myhandler.NewWebHandler()
+		http.Handle("/", myHandler)
+		fs := http.FileServer(http.Dir(".."))
+		http.Handle("/static/", http.StripPrefix("/static/", fs))
 
-	http.ListenAndServe(":8080", myHandler)
+		fmt.Println("Starting Server on localhost:8080")
+
+		http.ListenAndServe(":8080", nil)
+	}
 }
