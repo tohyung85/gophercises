@@ -1,6 +1,7 @@
 package sitemapbuilder
 
 import (
+	"encoding/xml"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -14,6 +15,16 @@ type SiteMapBuilder struct {
 	hostname        string
 	excludeExternal bool
 	maxDepth        int
+}
+
+type XMLSiteMap struct {
+	XMLName xml.Name `xml:"urlset"`
+	Domain  string   `xml:"xmlns,attr"`
+	Sites   []XMLUrl `xml:"url"`
+}
+
+type XMLUrl struct {
+	LinkUrl string `xml:"loc"`
 }
 
 func NewBuilder(domain string, excludeExt bool, maxDepth int) (*SiteMapBuilder, error) {
@@ -31,10 +42,9 @@ func (smb *SiteMapBuilder) BuildSiteMap() (string, error) {
 
 	fmt.Printf("DONE Populating, domain map has %d entries\n", len(domainLinks))
 
-	//TODO: Generate XML
-	result := ""
-	for href, _ := range domainLinks {
-		result += fmt.Sprintf("url: %s\n", href)
+	result, err := createXML(domainLinks, smb.domain)
+	if err != nil {
+		return "", err
 	}
 
 	return result, nil
@@ -119,4 +129,19 @@ func getUniquePaths(allLinks []linkparser.Link) map[string]string {
 	}
 
 	return siteLinks
+}
+
+func createXML(dL map[string]bool, domain string) (string, error) {
+	allSites := make([]XMLUrl, 0)
+	for href, _ := range dL {
+		xmlUrl := XMLUrl{href}
+		allSites = append(allSites, xmlUrl)
+	}
+	xmlSiteMap := &XMLSiteMap{Domain: domain, Sites: allSites}
+	xmlOutput, err := xml.MarshalIndent(xmlSiteMap, "  ", "    ")
+	if err != nil {
+		return "", err
+	}
+	xmlString := fmt.Sprintf("%s%s", xml.Header, string(xmlOutput))
+	return xmlString, nil
 }
