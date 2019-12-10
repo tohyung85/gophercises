@@ -7,8 +7,8 @@ import (
 )
 
 func main() {
-	sitePtr := flag.String("site", "https://www.calhoun.io", "Site used to build the site map")
-	domainSitesOnlyPtr := flag.Bool("internal-only", false, "Site map to contain internal sites only")
+	sitePtr := flag.String("site", "https://gophercises.com", "Site used to build the site map")
+	domainSitesOnlyPtr := flag.Bool("internal-only", true, "Site map to contain internal sites only")
 	searchDepthPtr := flag.Int("max-depth", 3, "Max search depth from domain site")
 	flag.Parse()
 

@@ -93,11 +93,12 @@ func getFullSite(site string, domain string) string {
 	if site == "" {
 		return site
 	}
+	returnSite := strings.TrimSuffix(site, "/")
 	if string(site[0]) == "/" {
-		return strings.TrimSuffix(domain, "/") + site
+		return strings.TrimSuffix(domain, "/") + returnSite
 	}
 
-	return site
+	return returnSite
 }
 
 func getSiteLinks(site string) (map[string]string, error) {
