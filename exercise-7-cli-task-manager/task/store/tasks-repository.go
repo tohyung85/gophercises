@@ -3,6 +3,10 @@ package store
 import (
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
+	"log"
+
+	homedir "github.com/mitchellh/go-homedir"
 
 	"github.com/boltdb/bolt"
 )
@@ -16,7 +20,11 @@ type Task struct {
 	Completed   bool   `json:"completed"`
 }
 
-func NewStore(db *bolt.DB) *BoltStore {
+func NewStore() *BoltStore {
+	db, err := setupStore()
+	if err != nil {
+		return nil
+	}
 	return &BoltStore{db}
 }
 
@@ -91,4 +99,24 @@ func itob(v int) []byte {
 	b := make([]byte, 8)
 	binary.BigEndian.PutUint64(b, uint64(v))
 	return b
+}
+
+func setupStore() (*bolt.DB, error) {
+	dir, err := homedir.Dir()
+	if err != nil {
+		log.Fatal(err)
+	}
+	dbFile := fmt.Sprintf("%s/Go/src/github.com/tohyung85/gophercises/exercise-7-cli-task-manager/task/store/tasks.db", dir)
+	db, err := bolt.Open(dbFile, 0600, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte("DB"))
+		if err != nil {
+			return fmt.Errorf("Could not create bucket: %v", err)
+		}
+		return nil
+	})
+	return db, err
 }
