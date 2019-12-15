@@ -2,11 +2,11 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"github.com/tohyung85/gophercises/exercise-7-cli-task-manager/task/store"
+	"github.com/tohyung85/gophercises/exercise-7-cli-task-manager/go-task/store"
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "task",
+	Use:   "go-task",
 	Short: "Terminal based Cli Application",
 	Long:  "task is a CLI for managing your TODOs.",
 }

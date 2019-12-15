@@ -106,7 +106,7 @@ func setupStore() (*bolt.DB, error) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	dbFile := fmt.Sprintf("%s/Go/src/github.com/tohyung85/gophercises/exercise-7-cli-task-manager/task/store/tasks.db", dir)
+	dbFile := fmt.Sprintf("%s/Go/src/github.com/tohyung85/gophercises/exercise-7-cli-task-manager/go-task/store/tasks.db", dir)
 	db, err := bolt.Open(dbFile, 0600, nil)
 	if err != nil {
 		log.Fatal(err)
