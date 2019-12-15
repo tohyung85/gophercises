@@ -16,11 +16,26 @@ var delTaskCmd = &cobra.Command{
 }
 
 func delTask(cmd *cobra.Command, args []string) {
+	var taskKey int
 	taskDone := args[0]
 	taskId, err := strconv.Atoi(taskDone)
 	if err != nil {
 		fmt.Printf("Entry: %s is not an integer!", taskDone)
 	}
-	TasksStore.DeleteItem(taskId)
+	allTasks, err := TasksStore.RetrieveAll()
+	if err != nil {
+		fmt.Println("Issue getting all tasks")
+	}
+	taskIterationId := 1
+	for k, v := range allTasks {
+		if !v.Completed {
+			if taskIterationId != taskId {
+				taskIterationId++
+				continue
+			}
+			taskKey = k
+		}
+	}
+	TasksStore.DeleteItem(taskKey)
 	fmt.Printf("You have deleted \"%s\" task\n", taskDone)
 }

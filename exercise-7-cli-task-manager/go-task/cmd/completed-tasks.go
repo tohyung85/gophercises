@@ -21,9 +21,11 @@ func listCompletedTasks(cmd *cobra.Command, args []string) {
 	}
 
 	fmt.Println("You have completed the following tasks:")
-	for k, v := range allTasks {
+	taskListing := 1
+	for _, v := range allTasks {
 		if v.Completed {
-			fmt.Printf("%d: %s\n", k, v.Description)
+			fmt.Printf("%d: %s\n", taskListing, v.Description)
+			taskListing++
 		}
 	}
 }
