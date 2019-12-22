@@ -1,10 +1,14 @@
 package store
 
 import (
-	"database/sql"
+	// "database/sql" - if not using sqlx
+	"fmt"
+	"github.com/jinzhu/gorm"
+	"github.com/jmoiron/sqlx"
 )
 
-var dbSingleton *sql.DB
+var dbSingleton *sqlx.DB
+var gormDbSingleton *gorm.DB
 
 type DbStyle int
 
@@ -29,14 +33,24 @@ type PhoneStore struct {
 }
 
 type PhoneNo struct {
-	Id     int
-	Number string
+	Id     int    `gorm:"AUTO_INCREMENT"`
+	Number string `gorm:"type:varchar(100);column:phone_no" db:"phone_no"`
 }
 
-func NewStore(db *sql.DB) (*PhoneStore, error) {
+func NewStore(db *sqlx.DB) (*PhoneStore, error) {
 	dbSingleton = db
 	phoneStore := &PhoneStore{}
 	err := initializeStoreTables(SQL)
+	if err != nil {
+		return nil, err
+	}
+	return phoneStore, err
+}
+
+func NewGormStore(db *gorm.DB) (*PhoneStore, error) {
+	gormDbSingleton = db
+	phoneStore := &PhoneStore{}
+	err := initializeStoreTables(GORM)
 	if err != nil {
 		return nil, err
 	}
@@ -48,29 +62,23 @@ func initializeStoreTables(dbStyle DbStyle) error {
 	switch dbStyle {
 	case SQL:
 		err = sqlInitTables()
+	case GORM:
+		err = gormInitTables()
 	default:
 		err = sqlInitTables()
 	}
 	return err
 }
 
-func parseRows(rows *sql.Rows) []PhoneNo {
-	results := make([]PhoneNo, 0)
-	for rows.Next() {
-		var id int
-		var num string
-		rows.Scan(&id, &num)
-		results = append(results, PhoneNo{id, num})
-	}
-	return results
-}
-
 func (ps *PhoneStore) GetEntries(dbStyle DbStyle) ([]PhoneNo, error) {
+	fmt.Println("Getting entries for db style: ", dbStyle)
 	var err error = nil
 	var result []PhoneNo
 	switch dbStyle {
-	case SQL:
-		result, err = sqlGetEntries()
+	case SQLX:
+		result, err = sqlxGetEntries()
+	case GORM:
+		result, err = gormGetEntries()
 	default:
 		result, err = sqlGetEntries()
 	}
@@ -82,6 +90,8 @@ func (ps *PhoneStore) DeleteEntry(id int, dbStyle DbStyle) error {
 	switch dbStyle {
 	case SQL:
 		err = sqlDeleteEntry(id)
+	case GORM:
+		err = gormDeleteEntry(id)
 	default:
 		err = sqlDeleteEntry(id)
 	}
@@ -93,6 +103,8 @@ func (ps *PhoneStore) UpdateEntry(id int, newVal string, dbStyle DbStyle) error 
 	switch dbStyle {
 	case SQL:
 		err = sqlUpdateEntry(id, newVal)
+	case GORM:
+		err = gormUpdateEntry(id, newVal)
 	default:
 		err = sqlUpdateEntry(id, newVal)
 	}

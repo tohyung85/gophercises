@@ -1,6 +1,7 @@
 package store
 
 import (
+	"database/sql"
 	"fmt"
 	"strings"
 )
@@ -51,19 +52,30 @@ func sqlGetEntries() ([]PhoneNo, error) {
 	if err != nil {
 		return nil, err
 	}
-	return parseRows(rows), nil
+	return sqlParseRows(rows), nil
 }
 
 func sqlDeleteEntry(id int) error {
 	queryString := `DELETE FROM phone_numbers WHERE phone_numbers.id = $1`
-	result, err := dbSingleton.Exec(queryString, id)
-	fmt.Printf("Deletion executed: %s", result)
+	_, err := dbSingleton.Exec(queryString, id)
+	// fmt.Printf("Deletion executed: %s", result)
 	return err
 }
 
 func sqlUpdateEntry(id int, newVal string) error {
 	queryString := `UPDATE phone_numbers SET phone_no=$1 WHERE phone_numbers.id = $2`
-	result, err := dbSingleton.Exec(queryString, newVal, id)
-	fmt.Printf("Update executed: %s", result)
+	_, err := dbSingleton.Exec(queryString, newVal, id)
+	// fmt.Printf("Update executed: %s", result)
 	return err
+}
+
+func sqlParseRows(rows *sql.Rows) []PhoneNo {
+	results := make([]PhoneNo, 0)
+	for rows.Next() {
+		var id int
+		var num string
+		rows.Scan(&id, &num)
+		results = append(results, PhoneNo{id, num})
+	}
+	return results
 }
