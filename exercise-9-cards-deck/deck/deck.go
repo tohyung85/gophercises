@@ -28,6 +28,12 @@ var deckSuits [4]string = [4]string{
 	"S", "D", "C", "H",
 }
 
+func (d *Deck) ListCards() {
+	for idx, c := range d.cards {
+		fmt.Printf("%d. Num: %s, Suit: %s\n", idx+1, c.Number, c.Suit)
+	}
+}
+
 func NumberDecks(num int) option {
 	return func(d *Deck) {
 		d.NumberDecks = num

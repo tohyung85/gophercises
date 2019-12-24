@@ -55,9 +55,8 @@ func TestShuffle(t *testing.T) {
 
 	deck.ShuffleDeck()
 
-	// for _, c := range deck.cards {
-	// 	fmt.Printf("Number: %s, Suit: %s\n", c.Number, c.Suit)
-	// }
+	// deck.ListCards()
+
 }
 
 func TestAddJokers(t *testing.T) {
