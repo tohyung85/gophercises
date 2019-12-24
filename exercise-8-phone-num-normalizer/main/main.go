@@ -60,11 +60,19 @@ func main() {
 		dbStyle = store.SQL
 		db := dbGen.(*sqlx.DB)
 		defer db.Close()
+		err = db.Ping()
+		if err != nil {
+			panic(err)
+		}
 		phoneStore, err = store.NewStore(db)
 	case "SQLX":
 		dbStyle = store.SQLX
 		db := dbGen.(*sqlx.DB)
 		defer db.Close()
+		err = db.Ping()
+		if err != nil {
+			panic(err)
+		}
 		phoneStore, err = store.NewStore(db)
 	case "GORM":
 		db := dbGen.(*gorm.DB)
@@ -74,6 +82,10 @@ func main() {
 		dbStyle = store.SQLX
 		db := dbGen.(*sqlx.DB)
 		defer db.Close()
+		err = db.Ping()
+		if err != nil {
+			panic(err)
+		}
 		phoneStore, err = store.NewStore(db)
 	}
 
