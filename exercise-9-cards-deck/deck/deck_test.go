@@ -13,9 +13,9 @@ func TestNewDeck(t *testing.T) {
 		t.Errorf("Failed: Deck has %d cards instead of 52 cards\n", deck.CountDeck())
 	}
 
-	peekCardNumber(1, "A", "S", t, deck)
-	peekCardNumber(20, "7", "D", t, deck)
-	peekCardNumber(52, "K", "H", t, deck)
+	peekCardNumber(1, Ace, Spade, t, deck)
+	peekCardNumber(20, Seven, Diamond, t, deck)
+	peekCardNumber(52, King, Heart, t, deck)
 
 	deck = NewDeck(NumberDecks(2), NumberJokers(2), ShuffledDeck(true))
 
@@ -25,7 +25,7 @@ func TestNewDeck(t *testing.T) {
 		t.Errorf("Failed: Deck has %d cards instead of 106 cards\n", deck.CountDeck())
 	}
 
-	jokerPos := deck.FindCardPosition("Joker", "Joker")
+	jokerPos := deck.FindCardPosition(Ace, Joker)
 	if jokerPos > -1 {
 		t.Logf("Success: There is Joker!\n")
 	} else {
@@ -43,11 +43,11 @@ func TestSort(t *testing.T) {
 	deck := NewDeck()
 
 	SortDeck(deck, func(i, j int) bool {
-		return deck.cards[i].Suit < deck.cards[j].Suit
+		return deck.cards[i].Suit.String() < deck.cards[j].Suit.String()
 	})
 
-	peekCardNumber(1, "A", "C", t, deck)
-	peekCardNumber(52, "K", "S", t, deck)
+	peekCardNumber(1, Ace, Club, t, deck)
+	peekCardNumber(52, King, Spade, t, deck)
 }
 
 func TestShuffle(t *testing.T) {
@@ -71,24 +71,24 @@ func TestAddJokers(t *testing.T) {
 		t.Errorf("Failed: %d cards in deck vs expected of %d", deck.CountDeck(), initNumCards+numberToAdd)
 	}
 
-	peekCardNumber(54, "Joker", "Joker", t, deck)
+	peekCardNumber(54, Ace, Joker, t, deck)
 }
 
 func TestRemoveCards(t *testing.T) {
 	deck := NewDeck()
-	deck.RemoveCard("A", "S")
-	checkCardExist("A", "S", t, deck)
+	deck.RemoveCard(Ace, Spade)
+	checkCardExist(Ace, Spade, t, deck)
 
-	deck.RemoveCardsWithNum("2")
-	checkCardExist("2", "S", t, deck)
-	checkCardExist("2", "H", t, deck)
-	checkCardExist("2", "C", t, deck)
-	checkCardExist("2", "D", t, deck)
+	deck.RemoveCardsWithNum(Two)
+	checkCardExist(Two, Spade, t, deck)
+	checkCardExist(Two, Heart, t, deck)
+	checkCardExist(Two, Club, t, deck)
+	checkCardExist(Two, Diamond, t, deck)
 
-	deck.RemoveCardsWithSuit("H")
-	checkCardExist("5", "H", t, deck)
-	checkCardExist("K", "H", t, deck)
-	checkCardExist("A", "H", t, deck)
+	deck.RemoveCardsWithSuit(Heart)
+	checkCardExist(Five, Heart, t, deck)
+	checkCardExist(King, Heart, t, deck)
+	checkCardExist(Ace, Heart, t, deck)
 }
 
 func TestDrawDeck(t *testing.T) {
@@ -98,10 +98,10 @@ func TestDrawDeck(t *testing.T) {
 		t.Errorf("Failed: error encountered: %s", err)
 		return
 	}
-	if c.Number == "K" && c.Suit == "H" {
-		t.Logf("Success: Got last card K of H")
+	if c.Rank == King && c.Suit == Heart {
+		t.Logf("Success: Got last card %s", c)
 	} else {
-		t.Errorf("Failed: Got %s of %s instead of K of H", c.Number, c.Suit)
+		t.Errorf("Failed: Got %s instead of King of Hearts", c)
 	}
 	if deck.CountDeck() == 51 {
 		t.Logf("Success: last card got removed")
@@ -110,22 +110,22 @@ func TestDrawDeck(t *testing.T) {
 	}
 }
 
-func checkCardExist(num string, suit string, t *testing.T, deck *Deck) {
-	cardPos := deck.FindCardPosition(num, suit)
+func checkCardExist(r Rank, s Suit, t *testing.T, deck *Deck) {
+	cardPos := deck.FindCardPosition(r, s)
 	if cardPos == -1 {
-		t.Logf("Success: Removed Card %s of %s no longer in deck", num, suit)
+		t.Logf("Success: Removed Card %s of %ss no longer in deck", r, s)
 	} else {
-		t.Errorf("Failed: %s of %s still in deck", num, suit)
+		t.Errorf("Failed: %s of %s still in deck", r, s)
 	}
 }
 
-func peekCardNumber(toDraw int, expectedNum string, expectedSuit string, t *testing.T, deck *Deck) {
+func peekCardNumber(toDraw int, expectedRank Rank, expectedSuit Suit, t *testing.T, deck *Deck) {
 	card, err := deck.Peek(toDraw)
 	checkError(err, t)
-	if card.Number == expectedNum && card.Suit == expectedSuit {
-		t.Logf("Success: card no. %d on the deck is %s of %s", toDraw, card.Number, card.Suit)
+	if card.Rank == expectedRank && card.Suit == expectedSuit {
+		t.Logf("Success: card no. %d on the deck is %s of %s", toDraw, card.Rank, card.Suit)
 	} else {
-		t.Errorf("Failed: card no. %d on the deck is %s of %s instead of %s of %s", toDraw, card.Number, card.Suit, expectedNum, expectedSuit)
+		t.Errorf("Failed: card no. %d on the deck is %s instead of %s of %s\n", toDraw, card, expectedRank, expectedSuit)
 	}
 }
 

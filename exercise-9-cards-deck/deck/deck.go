@@ -1,9 +1,40 @@
+//go:generate stringer -type=Rank,Suit
+
 package deck
 
 import (
 	"fmt"
 	"math/rand"
 	"sort"
+)
+
+type Suit int
+
+type Rank int
+
+const (
+	Spade Suit = iota
+	Diamond
+	Club
+	Heart
+	Joker
+)
+
+const (
+	_ Rank = iota
+	Ace
+	Two
+	Three
+	Four
+	Five
+	Six
+	Seven
+	Eight
+	Nine
+	Ten
+	Jack
+	Queen
+	King
 )
 
 type Deck struct {
@@ -14,24 +45,29 @@ type Deck struct {
 }
 
 type Card struct {
-	Number string
-	Suit   string
+	Rank
+	Suit
 }
 
 type option func(*Deck)
 
-var deckNumbers [13]string = [13]string{
-	"A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K",
-}
-
-var deckSuits [4]string = [4]string{
-	"S", "D", "C", "H",
-}
-
-func (d *Deck) ListCards() {
-	for idx, c := range d.cards {
-		fmt.Printf("%d. Num: %s, Suit: %s\n", idx+1, c.Number, c.Suit)
+func (c *Card) String() string {
+	if c.Suit == Joker {
+		return c.Suit.String()
 	}
+
+	return fmt.Sprintf("%s of %ss", c.Rank, c.Suit)
+}
+
+func (d *Deck) String() string {
+	returnStr := ""
+	if len(d.cards) < 1 {
+		return "There are no cards in the deck!"
+	}
+	for idx, c := range d.cards {
+		returnStr += fmt.Sprintf("%d. %s\n", idx+1, c)
+	}
+	return returnStr
 }
 
 func NumberDecks(num int) option {
@@ -66,9 +102,9 @@ func NewDeck(opts ...option) *Deck {
 	}
 
 	for i := 0; i < deck.NumberDecks; i++ {
-		for _, suit := range deckSuits {
-			for _, num := range deckNumbers {
-				card := Card{num, suit}
+		for s := Spade; s <= Heart; s++ {
+			for r := Ace; r <= King; r++ {
+				card := Card{r, s}
 				deck.cards = append(deck.cards, card)
 			}
 		}
@@ -93,9 +129,9 @@ func (d *Deck) Peek(num int) (Card, error) {
 	return d.cards[num-1], nil
 }
 
-func (d *Deck) FindCardPosition(num string, suit string) int {
+func (d *Deck) FindCardPosition(r Rank, s Suit) int {
 	for idx, c := range d.cards {
-		if c.Number == num && c.Suit == suit {
+		if c.Rank == r && c.Suit == s {
 			return idx + 1
 		}
 	}
@@ -126,14 +162,14 @@ func (d *Deck) Draw() (Card, error) {
 	if err != nil {
 		return Card{}, err
 	}
-	d.RemoveCard(c.Number, c.Suit)
+	d.RemoveCard(c.Rank, c.Suit)
 	return c, nil
 }
 
-func (d *Deck) RemoveCard(num string, suit string) {
+func (d *Deck) RemoveCard(r Rank, s Suit) {
 	newDeckOfCards := make([]Card, 0)
 	for _, c := range d.cards {
-		if c.Number == num && c.Suit == suit {
+		if c.Rank == r && c.Suit == s {
 			continue
 		}
 		newDeckOfCards = append(newDeckOfCards, c)
@@ -141,10 +177,10 @@ func (d *Deck) RemoveCard(num string, suit string) {
 	d.cards = newDeckOfCards
 }
 
-func (d *Deck) RemoveCardsWithSuit(suit string) {
+func (d *Deck) RemoveCardsWithSuit(s Suit) {
 	newDeckOfCards := make([]Card, 0)
 	for _, c := range d.cards {
-		if c.Suit == suit {
+		if c.Suit == s {
 			continue
 		}
 		newDeckOfCards = append(newDeckOfCards, c)
@@ -152,10 +188,10 @@ func (d *Deck) RemoveCardsWithSuit(suit string) {
 	d.cards = newDeckOfCards
 }
 
-func (d *Deck) RemoveCardsWithNum(num string) {
+func (d *Deck) RemoveCardsWithNum(r Rank) {
 	newDeckOfCards := make([]Card, 0)
 	for _, c := range d.cards {
-		if c.Number == num {
+		if c.Rank == r {
 			continue
 		}
 		newDeckOfCards = append(newDeckOfCards, c)
@@ -165,7 +201,7 @@ func (d *Deck) RemoveCardsWithNum(num string) {
 
 func (d *Deck) AddJokers(numToAdd int) {
 	for i := 0; i < numToAdd; i++ {
-		joker := Card{"Joker", "Joker"}
+		joker := Card{Ace, Joker}
 		d.cards = append(d.cards, joker)
 	}
 }
