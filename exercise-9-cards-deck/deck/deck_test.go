@@ -42,9 +42,13 @@ func TestNewDeck(t *testing.T) {
 func TestSort(t *testing.T) {
 	deck := NewDeck()
 
-	SortDeck(deck, func(i, j int) bool {
-		return deck.cards[i].Suit.String() < deck.cards[j].Suit.String()
-	})
+	customSortFunc := func(cards []Card) func(i, j int) bool {
+		return func(i, j int) bool {
+			return deck.cards[i].Suit.String() < deck.cards[j].Suit.String()
+		}
+	}
+
+	deck.SortDeckCustom(customSortFunc)
 
 	peekCardNumber(1, Ace, Club, t, deck)
 	peekCardNumber(52, King, Spade, t, deck)

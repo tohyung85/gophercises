@@ -38,10 +38,7 @@ const (
 )
 
 type Deck struct {
-	cards        []Card
-	NumberDecks  int
-	NumberJokers int
-	ShuffledDeck bool
+	cards []Card
 }
 
 type Card struct {
@@ -72,50 +69,76 @@ func (d *Deck) String() string {
 
 func NumberDecks(num int) option {
 	return func(d *Deck) {
-		d.NumberDecks = num
+		d.AddDecks(num - 1)
 	}
 }
 
 func NumberJokers(num int) option {
 	return func(d *Deck) {
-		d.NumberJokers = num
+		d.AddJokers(num)
+	}
+}
+
+func SortedBy(customFunc func(c []Card) func(i, j int) bool) option {
+	return func(d *Deck) {
+		d.SortDeckCustom(customFunc)
+	}
+}
+
+func OmitSuits(args ...Suit) option {
+	return func(d *Deck) {
+		for _, s := range args {
+			d.RemoveCardsWithSuit(s)
+		}
+	}
+}
+
+func OmitRanks(args ...Rank) option {
+	return func(d *Deck) {
+		for _, r := range args {
+			d.RemoveCardsWithNum(r)
+		}
+	}
+}
+
+func OmitCards(args ...Card) option {
+	return func(d *Deck) {
+		for _, c := range args {
+			d.RemoveCard(c.Rank, c.Suit)
+		}
 	}
 }
 
 func ShuffledDeck(shuffle bool) option {
 	return func(d *Deck) {
-		d.ShuffledDeck = shuffle
+		d.ShuffleDeck()
 	}
 }
 
-func NewDeck(opts ...option) *Deck {
+func NewDeck(opts ...option) *Deck { // Please include number of decks option first
 	cards := make([]Card, 0)
 	deck := &Deck{
-		cards:        cards,
-		NumberDecks:  1,
-		NumberJokers: 0,
-		ShuffledDeck: false,
+		cards: cards,
 	}
+
+	deck.AddDecks(1) // You need at least one deck
 
 	for _, opt := range opts {
 		opt(deck)
 	}
 
-	for i := 0; i < deck.NumberDecks; i++ {
+	return deck
+}
+
+func (d *Deck) AddDecks(num int) {
+	for i := 0; i < num; i++ {
 		for s := Spade; s <= Heart; s++ {
 			for r := Ace; r <= King; r++ {
 				card := Card{r, s}
-				deck.cards = append(deck.cards, card)
+				d.cards = append(d.cards, card)
 			}
 		}
 	}
-
-	deck.AddJokers(deck.NumberJokers)
-	if deck.ShuffledDeck {
-		deck.ShuffleDeck()
-	}
-
-	return deck
 }
 
 func (d *Deck) CountDeck() int {
@@ -138,19 +161,41 @@ func (d *Deck) FindCardPosition(r Rank, s Suit) int {
 	return -1
 }
 
-func SortDeck(d *Deck, compareFunc func(i, j int) bool) {
-	sort.SliceStable(d.cards, compareFunc)
+func (d *Deck) SortDeckDefault() {
+	d.sortDeck(defSortFunc)
+}
+
+func (d *Deck) SortDeckCustom(less func(c []Card) func(i, j int) bool) {
+	d.sortDeck(less)
 }
 
 func (d *Deck) ShuffleDeck() {
-	sort.Slice(d.cards, func(i, j int) bool {
+	d.sortDeck(shuffleSortFunc)
+}
+
+func (d *Deck) sortDeck(less func(c []Card) func(i, j int) bool) {
+	sort.SliceStable(d.cards, less(d.cards))
+}
+
+func defSortFunc(cards []Card) func(i, j int) bool {
+	return func(i, j int) bool {
+		return absRank(cards[i]) < absRank(cards[j])
+	}
+}
+
+func absRank(c Card) int {
+	return int(c.Suit)*13 + int(c.Rank)
+}
+
+func shuffleSortFunc(cards []Card) func(i, j int) bool {
+	return func(i, j int) bool {
 		r := rand.New(rand.NewSource(99))
 		if r.Intn(2) == 1 {
 			return true
 		} else {
 			return false
 		}
-	})
+	}
 }
 
 func (d *Deck) Draw() (Card, error) {
