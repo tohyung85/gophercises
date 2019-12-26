@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 	"sort"
+	"strconv"
 )
 
 type Suit int
@@ -159,6 +160,26 @@ func (d *Deck) FindCardPosition(r Rank, s Suit) int {
 		}
 	}
 	return -1
+}
+
+func GetRankMap() map[string]Rank {
+	rankMap := make(map[string]Rank)
+	for i := Ace; i <= King; i++ {
+		if i == Ace {
+			rankMap["A"] = i
+		}
+		rankMap[strconv.Itoa(int(i))] = i
+	}
+	return rankMap
+}
+
+func GetSuitMap() map[string]Suit {
+	suitMap := make(map[string]Suit)
+	suitMap["S"] = Spade
+	suitMap["D"] = Diamond
+	suitMap["H"] = Heart
+	suitMap["C"] = Club
+	return suitMap
 }
 
 func (d *Deck) SortDeckDefault() {
