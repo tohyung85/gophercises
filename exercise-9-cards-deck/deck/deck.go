@@ -49,7 +49,7 @@ type Card struct {
 
 type option func(*Deck)
 
-func (c *Card) String() string {
+func (c Card) String() string {
 	if c.Suit == Joker {
 		return c.Suit.String()
 	}
