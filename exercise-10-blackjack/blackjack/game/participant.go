@@ -1,6 +1,14 @@
 package game
 
-import "github.com/tohyung85/gophercises/exercise-9-cards-deck/deck"
+import (
+	"bufio"
+	"fmt"
+	"os"
+	"strconv"
+	"strings"
+
+	"github.com/tohyung85/gophercises/exercise-9-cards-deck/deck"
+)
 
 type Moves int
 
@@ -10,38 +18,37 @@ const (
 	Error Moves = 3
 )
 
-type Role int
+type Role string
 
 const (
-	Dealer Role = iota
-	Player
+	Dealer Role = "Dealer"
+	Player Role = "Player"
 )
 
 type Participant struct {
-	id   int
-	role Role
-	hand []deck.Card
+	id       int
+	role     Role
+	bankRoll int
 }
 
-func (participant *Participant) handPoints() int {
-	aces := make([]deck.Card, 0)
-	totalPoints := 0
-	for _, c := range participant.hand {
-		switch c.Rank {
-		case deck.Ace:
-			aces = append(aces, c)
-		case deck.King, deck.Queen, deck.Jack:
-			totalPoints += 10
-		default:
-			totalPoints += int(c.Rank)
+func (player *Participant) buyIn() *Hand {
+	reader := bufio.NewReader(os.Stdin)
+	inputOk := false
+	var hand *Hand
+	for !inputOk {
+		fmt.Printf("Player %d please place bet amount: ", player.id)
+		userInp, _ := reader.ReadString('\n')
+		userInp = strings.TrimSpace(userInp)
+		betAmount, err := strconv.Atoi(userInp)
+		if err == nil {
+			player.bankRoll -= betAmount
+			hand = &Hand{make([]deck.Card, 0), player, betAmount, false}
+			inputOk = true
 		}
 	}
-	for range aces {
-		if totalPoints+11 > 21 {
-			totalPoints += 1
-		} else {
-			totalPoints += 11
-		}
-	}
-	return totalPoints
+	return hand
+}
+
+func (player *Participant) getPaid(winnings int) {
+	player.bankRoll += winnings
 }
