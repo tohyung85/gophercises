@@ -18,6 +18,7 @@ func startGame(cmd *cobra.Command, args []string) {
 	toShuffle, _ := cmd.Flags().GetBool("shuffle")
 	suitsToOmit, _ := cmd.Flags().GetStringSlice("omit-suits")
 	ranksToOmit, _ := cmd.Flags().GetStringSlice("omit-ranks")
-	newGame := game.InitializeGame(numDecks, jokersToAdd, toShuffle, suitsToOmit, ranksToOmit)
+	numPlayers, _ := cmd.Flags().GetInt("players")
+	newGame := game.InitializeGame(numDecks, jokersToAdd, toShuffle, suitsToOmit, ranksToOmit, numPlayers)
 	newGame.Start()
 }

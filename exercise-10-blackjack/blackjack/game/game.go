@@ -9,66 +9,42 @@ import (
 	"strings"
 )
 
-type Moves int
-
-const (
-	Hit   Moves = 1
-	Stand Moves = 2
-	Error Moves = 3
-)
-
-type Role int
-
-const (
-	Dealer Role = iota
-	Player
-)
-
 type Game struct {
 	deck       *deck.Deck
 	players    []*Participant
+	dealer     *Participant
 	inProgress bool
+	rounds     []*Round
 }
 
 type Round struct {
 	inProgress bool
+	winners    map[int]struct{}
 }
 
-type Participant struct {
-	role Role
-	hand []deck.Card
-}
-
-func InitializeGame(decks int, jokers int, shuffle bool, removeSuits []string, removeRanks []string) *Game {
+func InitializeGame(decks int, jokers int, shuffle bool, removeSuits []string, removeRanks []string, numPlayers int) *Game {
 	gameDeck := initializeDeck(decks, jokers, shuffle, removeSuits, removeRanks)
-	players := initializePlayers(1)
-	game := &Game{gameDeck, players, true}
+	players, dealer := initializePlayers(numPlayers)
+	game := &Game{gameDeck, players, dealer, true, make([]*Round, 0)}
 	fmt.Printf("%s", game)
 	return game
 }
 
-func initializePlayers(numPlayers int) []*Participant {
+func initializePlayers(numPlayers int) ([]*Participant, *Participant) {
 	participants := make([]*Participant, 0)
 
 	for i := 0; i < numPlayers; i++ {
 		playerHand := make([]deck.Card, 0)
-		player := &Participant{Player, playerHand}
+		player := &Participant{i + 1, Player, playerHand}
 		participants = append(participants, player)
 	}
 	dealerHand := make([]deck.Card, 0)
-	dealer := &Participant{Dealer, dealerHand}
-	participants = append(participants, dealer)
+	dealer := &Participant{0, Dealer, dealerHand}
 
-	return participants
+	return participants, dealer
 }
 
 func initializeDeck(decks int, jokers int, shuffle bool, removeSuits []string, removeRanks []string) *deck.Deck {
-	fmt.Println("Initializing deck with following parameters:")
-	fmt.Printf("%d decks\n", decks)
-	fmt.Printf("%d jokers\n", jokers)
-	fmt.Printf("Deck to be shuffled? %t\n", shuffle)
-	fmt.Printf("Suits %v will be removed\n", removeSuits)
-	fmt.Printf("Ranks %v will be removed\n", removeRanks)
 	suitMap := deck.GetSuitMap()
 	rankMap := deck.GetRankMap()
 
@@ -97,7 +73,8 @@ func (game *Game) Start() error {
 	var err error
 	for game.inProgress {
 		reader := bufio.NewReader(os.Stdin)
-		round := &Round{true}
+		round := &Round{true, make(map[int]struct{})}
+		game.rounds = append(game.rounds, round)
 		game.clearHands()
 		err = game.dealCards()
 
@@ -106,30 +83,17 @@ func (game *Game) Start() error {
 		}
 		for round.inProgress {
 			game.printGameStatus(false)
-			for idx, player := range game.players {
-				turnInProgress := true
-				for turnInProgress {
-					var move Moves
-					if player.role == Player {
-						fmt.Printf("Player %d: ", idx+1)
-						move, err = game.processMoveFor(player)
-						fmt.Printf("Player %d's hand: %v (%d points)\n", idx+1, player.hand, player.handPoints())
-					} else {
-						fmt.Printf("Dealer: ")
-						move, err = game.processDealerMove(player)
-						fmt.Printf("Dealer's hand: %v (%d points)\n", player.hand, player.handPoints())
-					}
-					if err != nil {
-						return err
-					}
-					if move == Stand || player.handPoints() > 21 {
-						turnInProgress = false
-					}
+			for _, p := range game.players {
+				err = game.processMoveFor(p)
+				if err != nil {
+					return err
 				}
-
 			}
-			// Process game results
-			// Show end result
+			err = game.processDealerMove(game.dealer)
+			if err != nil {
+				return err
+			}
+			game.processResults()
 			game.printGameStatus(true)
 			round.inProgress = false
 		}
@@ -148,70 +112,76 @@ func (game *Game) Start() error {
 }
 
 func (game *Game) processResults() {
-
+	dPoints := game.dealer.handPoints()
+	currRound := game.rounds[len(game.rounds)-1]
+	for _, p := range game.players {
+		pPoints := p.handPoints()
+		if pPoints > 21 {
+			continue
+		}
+		if dPoints > 21 || pPoints > dPoints {
+			currRound.winners[p.id] = struct{}{}
+			continue
+		}
+	}
 }
 
-func (game *Game) processMoveFor(player *Participant) (Moves, error) {
+func (game *Game) processMoveFor(player *Participant) error {
+	turnInProgress := true
+	fmt.Println("-------------------------------------")
+	fmt.Printf("Player %d: ", player.id)
+	if len(player.hand) == 2 && player.handPoints() == 21 {
+		game.rounds[len(game.rounds)-1].winners[player.id] = struct{}{}
+		turnInProgress = false
+	}
 	reader := bufio.NewReader(os.Stdin)
-	userInp := ""
-	for userInp != "1" && userInp != "2" {
-		fmt.Printf("Your Move?\n1. Hit\n2. Stand\n")
-		userInp, _ = reader.ReadString('\n')
-		userInp = strings.TrimSpace(userInp)
-	}
-	inpInt, _ := strconv.Atoi(userInp)
-	if Moves(inpInt) == Hit {
-		card, err := game.deck.Draw()
-		if err != nil {
-			return Error, err
+	for turnInProgress {
+		userInp := ""
+		for userInp != "1" && userInp != "2" {
+			fmt.Printf("Your Move?\n1. Hit\n2. Stand\n")
+			userInp, _ = reader.ReadString('\n')
+			userInp = strings.TrimSpace(userInp)
 		}
-		player.hand = append(player.hand, card)
-		fmt.Printf("Player drew: %v\n", card)
-	} else {
-		fmt.Printf("Player Stands\n")
-	}
-	return Moves(inpInt), nil
-}
-
-func (game *Game) processDealerMove(player *Participant) (Moves, error) {
-	points := player.handPoints()
-	var move Moves
-	if points < 17 {
-		move = Hit
-		card, err := game.deck.Draw()
-		if err != nil {
-			return Error, err
-		}
-		fmt.Printf("Dealer drew: %v\n", card)
-		player.hand = append(player.hand, card)
-	} else {
-		move = Stand
-		fmt.Printf("Dealer Stands\n")
-	}
-	return move, nil
-}
-
-func (participant *Participant) handPoints() int {
-	aces := make([]deck.Card, 0)
-	totalPoints := 0
-	for _, c := range participant.hand {
-		switch c.Rank {
-		case deck.Ace:
-			aces = append(aces, c)
-		case deck.King, deck.Queen, deck.Jack:
-			totalPoints += 10
-		default:
-			totalPoints += int(c.Rank)
-		}
-	}
-	for range aces {
-		if totalPoints+11 > 21 {
-			totalPoints += 1
+		inpInt, _ := strconv.Atoi(userInp)
+		if Moves(inpInt) == Hit {
+			card, err := game.deck.Draw()
+			if err != nil {
+				return err
+			}
+			player.hand = append(player.hand, card)
+			fmt.Printf("Player drew: %v\n", card)
+			if player.handPoints() > 21 {
+				turnInProgress = false
+			}
 		} else {
-			totalPoints += 11
+			fmt.Printf("Player Stands\n")
+			turnInProgress = false
 		}
 	}
-	return totalPoints
+	fmt.Printf("Turn over - Player %d's hand: %v (%d points)\n", player.id, player.hand, player.handPoints())
+	return nil
+}
+
+func (game *Game) processDealerMove(player *Participant) error {
+	fmt.Println("-------------------------------------")
+	fmt.Printf("Dealer: ")
+	turnInProgress := true
+	for turnInProgress {
+		points := player.handPoints()
+		if points < 17 {
+			card, err := game.deck.Draw()
+			if err != nil {
+				return err
+			}
+			fmt.Printf("Dealer drew: %v\n", card)
+			player.hand = append(player.hand, card)
+		} else {
+			turnInProgress = false
+			fmt.Printf("Dealer Stands\n")
+		}
+	}
+	fmt.Printf("Turn over - Dealer's hand: %v (%d points)\n", player.hand, player.handPoints())
+	return nil
 }
 
 func (game *Game) clearHands() {
@@ -219,6 +189,7 @@ func (game *Game) clearHands() {
 		hand := make([]deck.Card, 0)
 		p.hand = hand
 	}
+	game.dealer.hand = make([]deck.Card, 0)
 }
 
 func (game *Game) dealCards() error {
@@ -230,18 +201,26 @@ func (game *Game) dealCards() error {
 			}
 			p.hand = append(p.hand, card)
 		}
+		card, err := game.deck.Draw()
+		if err != nil {
+			return err
+		}
+		game.dealer.hand = append(game.dealer.hand, card)
 	}
 	return nil
 }
 
 func (game *Game) printGameStatus(finalStatus bool) {
-	dealer := game.players[len(game.players)-1]
+	dealer := game.dealer
+	currRound := game.rounds[len(game.rounds)-1]
+	fmt.Println("-------------------------------------")
 	if finalStatus {
 		fmt.Printf("Dealer: %d Points\n", dealer.handPoints())
 		for idx, c := range dealer.hand {
 			fmt.Printf("Card %d: %s\n", idx+1, c.String())
 		}
 	} else {
+		fmt.Println("-------------------------------------")
 		fmt.Printf("Dealer:\n")
 		for idx, c := range dealer.hand {
 			if idx == 0 {
@@ -252,28 +231,17 @@ func (game *Game) printGameStatus(finalStatus bool) {
 		}
 	}
 
-	for idx, p := range game.players {
-		if p.role == Dealer {
-			continue
-		}
+	for _, p := range game.players {
+		fmt.Println("-------------------------------------")
+		wins := "Lost!"
 		if finalStatus {
-			wins := "Wins!"
-			if p.handPoints() > 21 {
-				wins = "Lost!"
-			} else {
-				if dealer.handPoints() > 21 {
-					wins = "Wins"
-				}
-				if p.handPoints() < dealer.handPoints() && dealer.handPoints() < 22 {
-					wins = "Lost!"
-				}
-				if p.handPoints() == dealer.handPoints() {
-					wins = "Draw!"
-				}
+			_, won := currRound.winners[p.id]
+			if won {
+				wins = "Wins!"
 			}
-			fmt.Printf("Player %d %s: %d Points\n", idx+1, wins, p.handPoints())
+			fmt.Printf("Player %d %s: %d Points\n", p.id, wins, p.handPoints())
 		} else {
-			fmt.Printf("Player %d:\n", idx+1)
+			fmt.Printf("Player %d:\n", p.id)
 		}
 		for idx, c := range p.hand {
 			fmt.Printf("Card %d: %s\n", idx+1, c.String())
