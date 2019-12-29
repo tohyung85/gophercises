@@ -75,10 +75,11 @@ func (game *Game) Start() error {
 		}
 
 		round.printStatus()
-		for _, h := range round.hands {
+		for idx := 0; idx < len(round.hands); idx++ {
+			h := round.hands[idx]
 			participant := h.belongTo
 			if participant.role == Player {
-				err := round.processPlayerHand(h)
+				err := round.processPlayerHand(h, idx)
 				if err != nil {
 					return err
 				}

@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 	"github.com/tohyung85/gophercises/exercise-10-blackjack/blackjack/game"
 )
@@ -20,5 +22,8 @@ func startGame(cmd *cobra.Command, args []string) {
 	ranksToOmit, _ := cmd.Flags().GetStringSlice("omit-ranks")
 	numPlayers, _ := cmd.Flags().GetInt("players")
 	newGame := game.InitializeGame(numDecks, jokersToAdd, toShuffle, suitsToOmit, ranksToOmit, numPlayers)
-	newGame.Start()
+	err := newGame.Start()
+	if err != nil {
+		fmt.Printf("%s", err)
+	}
 }

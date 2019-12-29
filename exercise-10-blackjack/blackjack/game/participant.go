@@ -15,7 +15,8 @@ type Moves int
 const (
 	Hit   Moves = 1
 	Stand Moves = 2
-	Error Moves = 3
+	Split Moves = 3
+	Error Moves = 4
 )
 
 type Role string

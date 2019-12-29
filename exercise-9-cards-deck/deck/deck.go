@@ -111,6 +111,11 @@ func OmitCards(args ...Card) option {
 }
 
 func ShuffledDeck(shuffle bool) option {
+	if !shuffle {
+		return func(d *Deck) {
+			return // do nothing
+		}
+	}
 	return func(d *Deck) {
 		d.ShuffleDeck()
 	}
@@ -136,6 +141,13 @@ func (d *Deck) AddDecks(num int) {
 		for s := Spade; s <= Heart; s++ {
 			for r := Ace; r <= King; r++ {
 				card := Card{r, s}
+				// fmt.Printf("Adding %s\n", card)
+				// var card Card
+				// if r%2 == 0 {
+				// 	card = Card{Eight, s}
+				// } else {
+				// 	card = Card{Seven, s}
+				// }
 				d.cards = append(d.cards, card)
 			}
 		}
@@ -209,9 +221,11 @@ func absRank(c Card) int {
 }
 
 func shuffleSortFunc(cards []Card) func(i, j int) bool {
+	//r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	r := rand.New(rand.NewSource(99))
 	return func(i, j int) bool {
-		r := rand.New(rand.NewSource(99))
-		if r.Intn(2) == 1 {
+		randomNum := r.Intn(2)
+		if randomNum == 1 {
 			return true
 		} else {
 			return false
@@ -228,7 +242,10 @@ func (d *Deck) Draw() (Card, error) {
 	if err != nil {
 		return Card{}, err
 	}
-	d.RemoveCard(c.Rank, c.Suit)
+
+	d.cards[d.CountDeck()-1] = Card{}
+	d.cards = d.cards[:d.CountDeck()-1]
+
 	return c, nil
 }
 
