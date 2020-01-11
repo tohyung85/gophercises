@@ -26,8 +26,9 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", helloFunc)
 	mux.HandleFunc("/panic-demo", panicFunc)
+	mux.HandleFunc("/panic-after", panicAfterFunc)
 
-	ph := panichandler.New(mux)
+	ph := panichandler.New(mux, environment)
 
 	fmt.Printf("Starting %s server on localhost %d", environment, port)
 
@@ -35,12 +36,16 @@ func main() {
 }
 
 func helloFunc(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusAccepted)
-	w.WriteHeader(http.StatusOK)
 	fmt.Fprintln(w, "Hello There!")
 }
 
 func panicFunc(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusAccepted)
 	panic("oh dear")
+}
+
+func panicAfterFunc(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusAccepted)
+	fmt.Fprintln(w, "Hello There")
+	panic("Oh dear, panicked after")
 }
