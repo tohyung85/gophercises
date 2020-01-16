@@ -3,8 +3,10 @@ package panichandler
 import (
 	"bufio"
 	"fmt"
+	"html/template"
 	"net"
 	"net/http"
+	"regexp"
 	"runtime/debug"
 )
 
@@ -24,15 +26,16 @@ func (pw *panicResponseWriter) WriteHeader(code int) {
 }
 
 func (pw *panicResponseWriter) Write(b []byte) (int, error) {
-	pw.writes = append(pw.writes, b)
-	fmt.Printf("Writing: %s\n", string(b))
+	tmp := make([]byte, len(b))
+	copy(tmp, b)
+	pw.writes = append(pw.writes, tmp)
 	return len(b), nil
 }
 
 func (pw *panicResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	hijacker, ok := pw.w.(http.Hijacker)
 	if !ok {
-		return nil, nil, fmt.Errorf("the Response writer does not suppoer Hijacker interface")
+		return nil, nil, fmt.Errorf("the Response writer does not support Hijacker interface")
 	}
 	return hijacker.Hijack()
 }
@@ -69,14 +72,25 @@ func New(mux http.Handler, environment string) *PanicHandler {
 }
 
 func (p *PanicHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	pw := &panicResponseWriter{w: w}
+	writes := make([][]byte, 0)
+	pw := &panicResponseWriter{w: w, writes: writes}
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Printf("Logging error: %s\n", r)
+			// fmt.Printf("Logging error: %s\n", r)
 			debug.PrintStack()
 			if p.environment == "Development" {
-				errorString := fmt.Sprintf("%s\n", r) + string(debug.Stack())
-				http.Error(w, errorString, http.StatusInternalServerError)
+				errorString := fmt.Sprintf("%s\n", r) + fmt.Sprintf("<p>%s</p>", getStackString())
+				errorHtml := template.HTML(errorString)
+				w.WriteHeader(http.StatusInternalServerError)
+
+				t := template.New("debug")
+				t, err := t.Parse("<p>{{.}}</p>")
+				if err != nil {
+					fmt.Println("Error parsing html")
+					http.Error(w, errorString, http.StatusInternalServerError)
+					return
+				}
+				t.Execute(w, errorHtml)
 				return
 			}
 			http.Error(w, "Opps! Something went wrong!", http.StatusInternalServerError)
@@ -85,4 +99,21 @@ func (p *PanicHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	p.mux.ServeHTTP(pw, r)
 	pw.flush() // Reminder: If panic called in ServeHTTP, this will never be called
+}
+
+func getAllLinks() []string {
+	stackString := string(debug.Stack())
+	pattern := regexp.MustCompile(`(/.*):([0-9]*)`)
+	return pattern.FindAllString(stackString, -1)
+}
+
+func getStackString() string {
+	stackString := string(debug.Stack())
+	pattern := regexp.MustCompile(`(/.*):([0-9]*)`)
+	newString := pattern.ReplaceAllString(stackString, `<br/><a href='/debug?file=$1&line=$2'>$1:$2</a>`)
+	return newString
+}
+
+func parseStackTrace(stackTrace string) string {
+	return stackTrace
 }

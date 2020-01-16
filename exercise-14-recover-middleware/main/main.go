@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/joho/godotenv"
+	"github.com/tohyung85/gophercises/exercise-14-recover-middleware/debughandler"
 	"github.com/tohyung85/gophercises/exercise-14-recover-middleware/panichandler"
 	"log"
 	"net/http"
@@ -23,10 +24,13 @@ func main() {
 		environment = "Production"
 	}
 
+	debugHandler := debughandler.New()
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", helloFunc)
 	mux.HandleFunc("/panic-demo", panicFunc)
 	mux.HandleFunc("/panic-after", panicAfterFunc)
+	mux.Handle("/debug/", debugHandler)
 
 	ph := panichandler.New(mux, environment)
 
@@ -36,7 +40,9 @@ func main() {
 }
 
 func helloFunc(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Hello There!")
+	fmt.Fprintln(w, "one")
+	fmt.Fprintln(w, "three")
+	fmt.Fprintln(w, "two")
 }
 
 func panicFunc(w http.ResponseWriter, r *http.Request) {
