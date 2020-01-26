@@ -62,7 +62,7 @@ func Decrypt(passphrase string, encryptedData []byte) ([]byte, error) {
 
 	nonce, encryptedText := encryptedData[saltSize:nonceStart], encryptedData[nonceStart:]
 
-	plainText, err := gcm.Open(nil, nonce, []byte(encryptedText), nil)
+	plainText, err := gcm.Open(nil, nonce, encryptedText, nil)
 	if err != nil {
 		return nil, err
 	}
